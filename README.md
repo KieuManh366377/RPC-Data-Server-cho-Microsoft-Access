@@ -363,12 +363,12 @@ Giải pháp này đặc biệt phù hợp cho:
 
 # Liên hệ
 
-Email: **[kieumanh366377@gmail.com](mailto:kieumanh366377@gmail.com)**
+**Kiều Mạnh (Việt Nam)**
 
-Tel: **0929.278.279**
-Tel: **0929.278.379**
+Email: kieumanh366377@gmail.com
 
-(Việt Nam)
+Tel: 0929.278.279  
+Tel: 0929.278.379
 
 ---
 
