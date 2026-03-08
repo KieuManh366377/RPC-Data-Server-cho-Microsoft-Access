@@ -120,30 +120,85 @@ PONG
 
 # Hệ thống Plugin DLL
 
-Server hỗ trợ **plugin DLL động**, cho phép mở rộng chức năng mà không cần sửa code máy chủ.
+RPC Server hỗ trợ **plugin DLL động**, cho phép mở rộng chức năng mà không cần sửa code máy chủ.
 
-Plugin có thể cung cấp:
+Client có thể gọi hàm trong plugin thông qua RPC.
 
-* xử lý dữ liệu
-* tính toán
-* tích hợp hệ thống khác
-* truy cập database
+Ví dụ RPC gọi plugin:
+
+```
+/CallDLL|MathPlugin.dll|Multiply|5|6
+```
+
+Server sẽ:
+
+1. nạp DLL nếu chưa được nạp
+2. tìm hàm theo tên
+3. thực thi hàm
+4. trả kết quả cho client
 
 ---
 
-# Ví dụ Plugin xử lý ADODB phía Server
+# Plugin mẫu
 
-Dự án cung cấp **plugin mẫu open source** sử dụng ADODB để thực thi SQL trên database Microsoft Access.
+Dự án cung cấp **hai plugin mẫu kèm source code (open source)** để giúp lập trình viên hiểu cách mở rộng hệ thống.
 
-Plugin cung cấp **một hàm duy nhất** để xử lý mọi lệnh SQL ghi dữ liệu.
+## 1. MathPlugin – Plugin ví dụ đơn giản
+
+Plugin này chỉ dùng để minh họa cách export hàm trong DLL.
+
+Ví dụ source code:
+
+```delphi
+library SamplePlugin;
+
+function Add(A, B: Integer): Integer; stdcall;
+begin
+  Result := A + B;
+end;
+
+exports
+  Add;
+
+begin
+end.
+```
+
+Ví dụ gọi từ RPC client:
+
+```
+/CallDLL|SamplePlugin.dll|Add|10|20
+```
+
+Phản hồi:
+
+```
+30
+```
+
+Plugin này giúp lập trình viên hiểu cách:
+
+* tạo DLL
+* export hàm
+* gọi hàm từ RPC server
+
+---
+
+## 2. AccessPlugin – Plugin xử lý ADODB
+
+Plugin thứ hai sử dụng **ADODB** để thực thi SQL trên database Microsoft Access phía máy chủ.
+
+Plugin cung cấp một hàm chung cho mọi thao tác SQL ghi dữ liệu.
+
+Ví dụ source code:
 
 ```delphi
 {
-  Hàm ExecSQL dùng chung cho mọi lệnh SQL:
-  INSERT, UPDATE, DELETE, CREATE TABLE,
-  DROP TABLE, ALTER TABLE
+  Hàm ExecSQL để dùng chung cho mọi lệnh SQL:
+  INSERT, UPDATE, DELETE,
+  CREATE TABLE, DROP TABLE, ALTER TABLE
 
-  Đây là một API duy nhất cho mọi thao tác ghi database.
+  Đây là một API duy nhất cho mọi thao tác ghi DB.
 }
 
 function ExecSQL(DBPath, SQL: PWideChar): Integer; stdcall;
@@ -160,13 +215,7 @@ begin
 end;
 ```
 
-Plugin sử dụng **ADODB để truy cập database trực tiếp trên máy chủ**.
-
----
-
-# Cách sử dụng từ RPC Client
-
-Client chỉ cần gọi RPC:
+Ví dụ RPC gọi plugin:
 
 ```
 /CallDLL|AccessPlugin.dll|ExecSQL|C:\Data\Test.accdb|INSERT INTO A VALUES(1)
@@ -174,17 +223,15 @@ Client chỉ cần gọi RPC:
 
 Server sẽ:
 
-1. gọi hàm `ExecSQL` trong plugin
+1. gọi hàm `ExecSQL`
 2. thực thi SQL bằng ADODB
-3. trả kết quả về client
+3. trả kết quả cho client
 
 ---
 
-# Lập trình Client giống như dùng ADODB Local
+# Lập trình Client giống như ADODB Local
 
-Một ưu điểm quan trọng của hệ thống là:
-
-**Client có thể sử dụng RPC server giống như gọi database trên máy local.**
+Một điểm quan trọng của hệ thống là client có thể sử dụng RPC server **giống như gọi database local**.
 
 Ví dụ trong Delphi:
 
@@ -199,19 +246,9 @@ Thực tế phía sau sẽ là:
 Client → RPC → Server → ADODB → Database
 ```
 
-Nhưng đối với lập trình viên client, cách sử dụng **vẫn giống tiêu chuẩn ADODB của Microsoft**.
+Nhưng đối với lập trình viên client, cách sử dụng vẫn giống tiêu chuẩn **ADODB của Microsoft**.
 
----
-
-# Ví dụ Client Delphi
-
-```delphi
-Client.IOHandler.WriteLn(
- '/CallDLL|AccessPlugin.dll|ExecSQL|C:\DB\Test.accdb|INSERT INTO A VALUES(1)'
-);
-
-Result := Client.IOHandler.ReadLn;
-```
+Nhờ đó việc chuyển ứng dụng từ **database local sang RPC server rất đơn giản**.
 
 ---
 
