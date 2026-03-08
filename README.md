@@ -1,164 +1,146 @@
-
 # RPC Data Server cho Microsoft Access
 
-**RPC Data Server cho Microsoft Access** là một **máy chủ trung gian (middleware)** cho phép các ứng dụng như **Microsoft Excel, Delphi, hoặc các client khác** truy cập cơ sở dữ liệu Microsoft Access thông qua giao thức **RPC (Remote Procedure Call)**.
+## Giới thiệu
 
-Thay vì nhiều máy cùng mở trực tiếp file Access qua mạng LAN (dễ gây lỗi và hỏng database), hệ thống này tạo một **server trung gian quản lý truy cập dữ liệu**.
+**RPC Data Server** là một máy chủ **Remote Procedure Call (RPC)** chạy trên TCP, cho phép biến một máy tính cá nhân thông thường thành **máy chủ dịch vụ dữ liệu cho mạng LAN hoặc Internet**.
+
+Hệ thống cho phép các ứng dụng client (Excel, Delphi hoặc các chương trình khác) **đọc và ghi dữ liệu vào cơ sở dữ liệu Microsoft Access thông qua giao thức RPC nhẹ và tốc độ cao**.
+
+Thay vì nhiều máy truy cập trực tiếp file database Access qua mạng, tất cả truy vấn sẽ được xử lý tập trung tại máy chủ.
+
+Điều này giúp:
+
+* tăng độ ổn định hệ thống
+* tránh lỗi khóa file khi nhiều người dùng
+* giảm nguy cơ hỏng database
+* tăng hiệu năng truy cập dữ liệu
+
+Máy chủ có thể chạy liên tục trên một máy tính Windows phổ thông.
 
 ---
 
-# Tại sao không nên chia sẻ trực tiếp file Access?
+# Vì sao dự án này được xây dựng
 
-Trong nhiều hệ thống nội bộ nhỏ, người dùng thường:
-
-```
-\\Server\Database\database.accdb
-```
-
-và nhiều máy mở cùng lúc.
-
-Cách này có thể gây:
-
-* File database bị **corrupt**
-* Lỗi **locking**
-* Hiệu năng kém khi nhiều user
-* Khó kiểm soát truy cập
-
-Theo khuyến nghị của Microsoft, khi số lượng user tăng, nên tách **Data Layer** thành **server xử lý truy cập**.
-
-Hệ thống này thực hiện mô hình:
+Trong nhiều hệ thống nhỏ sử dụng Microsoft Access, database thường được chia sẻ trực tiếp qua mạng:
 
 ```
-Client
-   ↓
-RPC Server
-   ↓
-Plugin
-   ↓
-ADODB
-   ↓
-Microsoft Access
+\\Server\Database.accdb
 ```
 
-Ưu điểm:
+Khi nhiều máy truy cập cùng lúc, các vấn đề phổ biến xảy ra:
 
-* Chỉ **1 server truy cập database**
-* Client không mở trực tiếp file Access
-* Có thể **kiểm soát truy cập**
-* Dễ mở rộng
+* xung đột khóa file
+* lỗi ghi dữ liệu
+* database bị hỏng
+* hiệu năng giảm khi nhiều người dùng
+
+Giải pháp của dự án này là **chuyển tất cả truy vấn database về một máy chủ RPC trung tâm**.
+
+Luồng xử lý sẽ trở thành:
+
+```
+Client → RPC Server → ADODB → Database
+```
+
+Nhờ đó:
+
+* database chỉ được truy cập tại **một máy duy nhất**
+* tránh lỗi chia sẻ file
+* hệ thống ổn định hơn
+* dễ kiểm soát và mở rộng
 
 ---
 
 # Kiến trúc hệ thống
 
 ```
-+-------------------+
-| Client Application|
-| Excel / Delphi    |
-+--------+----------+
-         |
-         | RPC Call
-         |
-+--------v----------+
-|   RPC Data Server |
-+--------+----------+
-         |
-         | Plugin System
-         |
-+--------v----------+
-|      Plugin DLL   |
-|  (ADO / Custom)   |
-+--------+----------+
-         |
-         | SQL / Data Access
-         |
-+--------v----------+
-| Microsoft Access  |
-|   Database        |
-+-------------------+
+           Client Applications
+        ┌──────────┬──────────┬──────────┐
+        │          │          │          │
+      Excel      Delphi     Script     Other Apps
+        │          │          │
+        └──────────┴──────────┴──────────┘
+                     │
+                     │ TCP RPC
+                     ▼
+              RPC Data Server
+                     │
+           ┌─────────┴─────────┐
+           │                   │
+      Command Router      Plugin System
+           │                   │
+           ▼                   ▼
+     SQL Execution        Plugin DLL
+           │
+           ▼
+    Microsoft Access DB
 ```
-
----
-
-# Tính năng chính
-
-* RPC Server TCP tốc độ cao
-* Hỗ trợ nhiều client đồng thời
-* Hệ thống **Plugin DLL mở rộng**
-* Plugin mẫu **ADO cho Access**
-* Có thể viết plugin riêng
-* Tích hợp dễ dàng với Excel VBA
-* Tích hợp Delphi hoặc các ứng dụng khác
-* Thiết kế lightweight
 
 ---
 
 # Quick Start
 
-## 1. Tải và chạy server
+1. Tải project hoặc release từ GitHub
+2. Chạy chương trình **RPC Server** trên máy chủ
+3. Mở port RPC (ví dụ: `9000`)
+4. Client kết nối tới server bằng TCP
 
-Download release và chạy:
-
-```
-RPCServer.exe
-```
-
-Server mặc định:
+Ví dụ log khi server chạy:
 
 ```
-Port: 9000
-```
-
-Log ví dụ:
-
-```
-RPC Server started 127.0.0.1:9000 Threads:32
+RPC Server started 127.0.0.1:9000
+Client connected: 192.168.1.25
+RPC Path=/ExecSQL
+RPC Path=/Ping
 ```
 
 ---
 
-## 2. Ví dụ gọi RPC
+# Giao thức RPC
 
-Client gửi command:
+Server sử dụng giao thức RPC dạng text đơn giản.
+
+Ví dụ client gửi:
+
+```
+/ExecSQL|SELECT * FROM Customers
+```
+
+Server thực thi truy vấn và trả kết quả.
+
+---
+
+# Các lệnh RPC cơ bản
+
+### Kiểm tra kết nối
+
+```
+/Ping
+```
+
+Phản hồi:
+
+```
+PONG
+```
+
+---
+
+### Thực thi SQL
+
+```
+/ExecSQL|SELECT * FROM Products
+```
+
+---
+
+### Gọi hàm Plugin
 
 ```
 /CallDLL|MathPlugin.dll|Multiply|5|6
 ```
 
-Server sẽ:
-
-1. Load plugin
-2. Gọi function
-3. Trả kết quả về client
-
----
-
-# Ví dụ Plugin toán học
-
-Plugin đơn giản:
-
-```delphi
-library MathPlugin;
-
-function Multiply(A, B: Integer): Integer; stdcall;
-begin
-  Result := A * B;
-end;
-
-exports
-  Multiply;
-
-begin
-end.
-```
-
-Client gọi:
-
-```
-/CallDLL|MathPlugin.dll|Multiply|5|6
-```
-
-Kết quả:
+Phản hồi:
 
 ```
 30
@@ -166,45 +148,28 @@ Kết quả:
 
 ---
 
-# Plugin ADO cho Microsoft Access
+# Hệ thống Plugin DLL
 
-Plugin mẫu cho phép thực thi SQL trực tiếp.
-
-Ví dụ function:
-
-```delphi
-function ExecSQL(DBPath, SQL: PChar): PChar; stdcall;
-```
-
-Ví dụ RPC:
-
-```
-/CallDLL|AccessADOPlugin.dll|ExecSQL|C:\DB\data.accdb|INSERT INTO Users(Name) VALUES('John')
-```
+Server hỗ trợ **Plugin DLL động**, cho phép mở rộng chức năng mà không cần sửa code máy chủ.
 
 Server sẽ:
 
-1. Plugin mở kết nối ADO
-2. Thực thi SQL
-3. Trả kết quả
+1. nạp DLL khi cần
+2. tìm hàm được export
+3. thực thi hàm
+4. trả kết quả về client
+
+Nhờ cơ chế plugin, server có thể trở thành **nền tảng mở để phát triển nhiều module khác nhau**.
 
 ---
 
-# Phát triển Plugin riêng
+# Plugin mẫu
 
-Người dùng có thể **tự viết Plugin DLL theo tiêu chuẩn của hệ thống**.
+Dự án cung cấp **plugin mẫu kèm source code (open source)** để giúp lập trình viên hiểu cách hoạt động của hệ thống.
 
-Repository cung cấp **plugin mẫu kèm source code** để lập trình viên dễ hiểu cách hoạt động.
+## 1. MathPlugin – Plugin ví dụ đơn giản
 
-Plugin có thể dùng cho:
-
-* Business logic
-* Data processing
-* Integration
-* External API
-* Automation
-
-Ví dụ plugin đơn giản:
+Plugin minh họa cách export hàm từ DLL.
 
 ```delphi
 library SamplePlugin;
@@ -221,101 +186,190 @@ begin
 end.
 ```
 
+Ví dụ gọi từ RPC:
+
+```
+/CallDLL|SamplePlugin.dll|Add|10|20
+```
+
+Kết quả:
+
+```
+30
+```
+
+Plugin này giúp hiểu:
+
+* cách tạo DLL
+* cách export hàm
+* cách RPC Server gọi plugin
+
 ---
 
-# Ví dụ sử dụng từ Excel VBA
+## 2. AccessPlugin – Plugin xử lý ADODB
 
-```vba
-Dim result As String
+Plugin thứ hai sử dụng **ADODB** để truy cập database Microsoft Access trực tiếp trên máy chủ.
 
-result = RPC_Call("/CallDLL|MathPlugin.dll|Multiply|10|20")
+Plugin cung cấp **một hàm chung cho mọi lệnh SQL ghi dữ liệu**.
 
-MsgBox result
+```delphi
+{
+  Hàm ExecSQL để dùng chung cho mọi lệnh SQL:
+  INSERT, UPDATE, DELETE,
+  CREATE TABLE, DROP TABLE, ALTER TABLE
+}
+
+function ExecSQL(DBPath, SQL: PWideChar): Integer; stdcall;
+var
+  Conn: TADOConnection;
+begin
+  try
+    Conn := GetConnection(DBPath);
+    Conn.Execute(SQL);
+    Result := 0;
+  except
+    Result := -1;
+  end;
+end;
+```
+
+Ví dụ RPC gọi plugin:
+
+```
+/CallDLL|AccessPlugin.dll|ExecSQL|C:\Data\Test.accdb|INSERT INTO A VALUES(1)
+```
+
+Server sẽ:
+
+1. gọi hàm `ExecSQL`
+2. thực thi SQL bằng ADODB
+3. trả kết quả cho client
+
+---
+
+# Lập trình Client giống như dùng ADODB Local
+
+Một ưu điểm quan trọng của hệ thống là:
+
+Client có thể sử dụng RPC server **giống như gọi database local**.
+
+Ví dụ trong Delphi:
+
+```delphi
+ExecSQL('C:\Data\Test.accdb',
+        'INSERT INTO Customers VALUES(...)');
+```
+
+Thực tế phía sau:
+
+```
+Client → RPC → Server → ADODB → Database
+```
+
+Nhưng đối với lập trình viên client, cách sử dụng **vẫn giống tiêu chuẩn ADODB của Microsoft**.
+
+Điều này giúp chuyển đổi ứng dụng từ **database local sang RPC server rất dễ dàng**.
+
+---
+
+# Ví dụ Client Delphi
+
+```delphi
+Client.IOHandler.WriteLn(
+ '/CallDLL|AccessPlugin.dll|ExecSQL|C:\DB\Test.accdb|INSERT INTO A VALUES(1)'
+);
+
+Result := Client.IOHandler.ReadLn;
 ```
 
 ---
 
-# Cấu trúc dự án
+# Benchmark hiệu năng
+
+Thử nghiệm trên mạng LAN:
 
 ```
-RPC-Data-Server-cho-Microsoft-Access
+CPU: Intel i5
+RAM: 16GB
+SSD
+```
+
+Server xử lý khoảng:
+
+```
+50 – 200 RPC calls / giây
+```
+
+tùy loại truy vấn database.
+
+Do giao thức RPC rất nhẹ nên độ trễ thấp hơn nhiều so với HTTP API.
+
+---
+
+# Cấu trúc Project
+
+```
+RPC-Data-Server
 │
-├── server
-│   RPCServer source code
+├─ server
+│   RPC Server core
 │
-├── plugins
+├─ plugins
 │   Sample plugins
 │
-├── examples
-│   Example clients
+├─ examples
+│   Client examples
 │
-├── docs
-│   Architecture and documentation
-│
-└── README.md
+└─ docs
+    Documentation
 ```
 
 ---
 
-# Hiệu năng
+# Ưu điểm của hệ thống
 
-Hệ thống được thiết kế cho môi trường **LAN nội bộ**.
-
-Ưu điểm:
-
-* Server quản lý connection
-* Giảm conflict file
-* Giảm network traffic
-* Xử lý đa luồng
+* chạy trên máy tính phổ thông
+* giao thức RPC rất nhẹ
+* tránh lỗi chia sẻ file Access
+* có thể mở rộng bằng plugin
+* client lập trình giống database local
 
 ---
 
-# Security Considerations
+# Khả năng mở rộng
 
-RPC server nên chạy trong **mạng nội bộ**.
+Kiến trúc server có thể mở rộng thêm:
 
-Khuyến nghị:
-
-* Không mở port ra internet
-* Kiểm soát plugin DLL
-* Validate input từ client
-* Sử dụng firewall
-
----
-
-# Use Cases
-
-Phù hợp cho:
-
-* Excel Database Systems
-* Small Business Systems
-* LAN Data Applications
-* Delphi Applications
-* Automation Tools
+* SQLite
+* MySQL
+* PostgreSQL
+* xác thực người dùng
+* mã hóa kết nối
+* hệ thống log và monitoring
 
 ---
 
-# Yêu cầu hệ thống
+# Mục tiêu dự án
 
-* Windows
-* Delphi Runtime
-* Microsoft Access Database Engine (ACE / ADO)
+Xây dựng một **RPC Data Server đơn giản nhưng mạnh mẽ**, cho phép bất kỳ máy tính cá nhân nào cũng có thể hoạt động như một **máy chủ dịch vụ dữ liệu cho nhiều ứng dụng client**.
 
----
+Giải pháp này đặc biệt phù hợp cho:
 
-# Giấy phép
-
-Open Source.
+* hệ thống Excel nhiều người dùng
+* ứng dụng Delphi nội bộ
+* hệ thống quản lý nhỏ và vừa
 
 ---
 
-# Tác giả
+# Liên hệ
 
-Kieu Manh
+Email: **[kieumanh366377@gmail.com](mailto:kieumanh366377@gmail.com)**
 
-GitHub:
+Tel: **0929.278.279**
+Tel: **0929.278.379**
 
-[https://github.com/KieuManh366377](https://github.com/KieuManh366377)
+(Việt Nam)
 
 ---
-.
+
+License: **MIT**
