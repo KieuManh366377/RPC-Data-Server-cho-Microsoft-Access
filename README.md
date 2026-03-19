@@ -349,15 +349,127 @@ Kiến trúc server có thể mở rộng thêm:
 
 ---
 
-# Mục tiêu dự án
+## 🎯 Mục tiêu dự án RPCServerCore.dll hướng tới
 
-Xây dựng một **RPC Data Server đơn giản nhưng mạnh mẽ**, cho phép bất kỳ máy tính cá nhân nào cũng có thể hoạt động như một **máy chủ dịch vụ dữ liệu cho nhiều ứng dụng client**.
+Xây dựng một **RPC Data Server đơn giản nhưng mạnh mẽ**, cho phép bất kỳ máy tính cá nhân nào cũng có thể hoạt động như một **máy chủ dịch vụ dữ liệu** phục vụ cho nhiều ứng dụng client.
 
 Giải pháp này đặc biệt phù hợp cho:
+* Hệ thống Excel nhiều người dùng
+* Ứng dụng Delphi nội bộ
+* Hệ thống quản lý quy mô nhỏ và vừa
+* Các ứng dụng đa nền tảng cần truy cập dữ liệu tập trung
 
-* hệ thống Excel nhiều người dùng
-* ứng dụng Delphi nội bộ
-* hệ thống quản lý nhỏ và vừa
+Ngoài Excel, hệ thống có thể được sử dụng với nhiều loại client khác nhau thông qua cơ chế RPC, cho phép tích hợp linh hoạt giữa các ứng dụng trên nhiều nền tảng.
+
+---
+
+## 🧠 Định hướng kiến trúc
+
+Trong các hệ thống client-server, việc kiểm soát logic xử lý và bảo vệ dữ liệu luôn là một thách thức:
+
+* Làm sao hạn chế lộ logic nội bộ?
+* Làm sao giảm nguy cơ bị can thiệp từ phía client?
+* Làm sao duy trì hiệu năng khi số lượng client thay đổi liên tục?
+
+**RPCServerCore.dll** được thiết kế với định hướng:
+
+> **Tập trung toàn bộ xử lý quan trọng tại máy chủ nhằm tăng khả năng kiểm soát, tối ưu hiệu năng và giảm thiểu rủi ro.**
+
+---
+
+## 🧩 Mô hình hoạt động
+
+Hệ thống vận hành theo nguyên tắc:
+
+* Client gửi yêu cầu (method + params)
+* Server xử lý toàn bộ logic
+* Kết quả được trả về client
+
+Client không tham gia xử lý nội bộ, giúp giảm phụ thuộc và tăng tính nhất quán.
+
+---
+
+## 🔒 Tăng cường bảo mật ở mức kiến trúc
+
+Thay vì phân tán logic xuống client, hệ thống:
+
+* Giữ toàn bộ xử lý tại server
+* Hạn chế lộ thuật toán và quy trình nội bộ
+* Giảm khả năng bị can thiệp từ phía client
+
+Điều này giúp:
+
+* Giảm bề mặt tấn công
+* Hạn chế rủi ro reverse logic
+* Dễ kiểm soát và kiểm tra hệ thống hơn
+
+---
+
+## 🔧 Mở rộng linh hoạt với Plugin
+
+Hệ thống hỗ trợ mở rộng thông qua plugin:
+
+* Mỗi plugin là một `.dll` đảm nhiệm một chức năng riêng
+* Có thể tổ chức theo từng nghiệp vụ độc lập
+
+Ví dụ:
+
+* Xác thực người dùng
+* Xử lý dữ liệu Excel
+* Nghiệp vụ quản lý nội bộ
+
+Toàn bộ plugin được thực thi tại server, đảm bảo kiểm soát tập trung.
+
+---
+
+## ⚙️ Cập nhật logic không gián đoạn
+
+Với cơ chế **Plugin Hot Reload**:
+
+* Có thể thêm hoặc cập nhật plugin mà không cần restart server
+* Logic mới được áp dụng ngay lập tức
+* Không ảnh hưởng tới các client đang hoạt động
+
+---
+
+## 🚀 Tối ưu cho môi trường nhiều client
+
+Hệ thống được thiết kế để hoạt động hiệu quả trong môi trường nhiều kết nối:
+
+* Tự động điều chỉnh số luồng theo số lượng client
+* Kết hợp cơ chế pool và xử lý bất đồng bộ (Async Callback)
+* Duy trì hiệu năng ổn định khi tải thay đổi
+
+Phù hợp cho các hệ thống vận hành liên tục 24/7.
+
+---
+
+## 🎯 Lợi ích đạt được
+
+* 🔐 Giảm rủi ro lộ logic nhờ xử lý tập trung tại server
+* ⚡ Tối ưu hiệu năng với cơ chế điều phối luồng linh hoạt
+* 🔄 Cập nhật nhanh, không gián đoạn dịch vụ
+* 🧩 Dễ mở rộng với kiến trúc plugin
+* 🧠 Đảm bảo tính nhất quán giữa các client
+
+---
+
+## 💡 Định hướng sử dụng thực tế
+
+**RPCServerCore.dll** đặc biệt phù hợp khi:
+
+* Cần triển khai nhanh một máy chủ dữ liệu nội bộ
+* Nhiều ứng dụng client cùng truy cập và xử lý dữ liệu
+* Yêu cầu kiểm soát logic tập trung
+* Ưu tiên giải pháp gọn nhẹ, chi phí thấp nhưng hiệu quả
+
+---
+
+## 🔚 Kết luận
+
+**RPCServerCore.dll** là một nền tảng RPC hướng tới việc đơn giản hóa triển khai máy chủ dữ liệu, đồng thời duy trì khả năng kiểm soát và mở rộng trong các hệ thống nhiều client.
+
+Cách tiếp cận xử lý tập trung tại máy chủ giúp hệ thống vận hành ổn định hơn, dễ quản lý hơn và phù hợp với nhiều mô hình ứng dụng thực tế.
 
 ---
 
