@@ -16,6 +16,12 @@ Thay vì nhiều máy truy cập trực tiếp file database Access qua mạng, 
 * tăng hiệu năng truy cập dữ liệu
 
 Máy chủ có thể chạy liên tục trên một máy tính Windows phổ thông.
+---
+## RPCServerCore.dll Kiến trúc đa nền tảng
+
+![RPC Architecture](https://drive.google.com/uc?export=view&id=1D9cX6Z482CO0cSmzLd7yfbgB6s77Xb6i)
+
+RPCServerCore.dll là lõi RPC vận chuyển, còn mọi xử lý nằm ở plugin DLL. Hỗ trợ đa nền tảng: Windows, macOS, Linux.
 
 ---
 
